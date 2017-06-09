@@ -9,7 +9,6 @@ const initialState = {
 };
 
 function userReducer(state = initialState, action) {
-  console.log('userReducer! - %s', action.type);
   switch (action.type) {
 
     case LOG_IN:
