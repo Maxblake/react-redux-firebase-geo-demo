@@ -1,5 +1,7 @@
 import React, {Component} from 'react';
 import {LocationStore} from '../Repository/Firebase';
+import {online, offline, requestGeoLocation} from '../Redux/actions';
+import { connect } from 'react-redux';
 
 class Location extends Component {
   constructor(props) {
@@ -10,12 +12,12 @@ class Location extends Component {
   }
 
   handleOnline() {
+    this.props.dispatch(requestGeoLocation());
     if (!navigator.geolocation) {
       console.error('Geolocation is not supported by this browser');
       return;
     }
 
-    // TODO tidy this up to avoid need to that=this
     var that = this;
     navigator.geolocation.getCurrentPosition(function(position) {
 
@@ -25,13 +27,13 @@ class Location extends Component {
 
       LocationStore.saveLocation(that.props.userId, latitude, longitude)
         .then(() => {
-          that.props.onLine([latitude, longitude]);
+          that.props.dispatch(online([latitude, longitude]));
         });
     });
   }
 
   handleOffline() {
-    this.props.offLine(this.props.userId);
+    this.props.dispatch(offline());
   }
 
   render() {
@@ -50,4 +52,13 @@ class Location extends Component {
   }
 }
 
-export default Location;
+// TODO is there a nicer way of doing this per component?
+function mapStateToProps(state) {
+  const { isOnline } = state.userReducer
+
+  return {
+    isOnline
+  }
+}
+
+export default connect(mapStateToProps)(Location)

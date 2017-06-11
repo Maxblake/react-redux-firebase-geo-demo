@@ -1,7 +1,8 @@
 import { combineReducers } from 'redux';
-import { LOG_IN, LOG_OUT, ONLINE, OFFLINE } from './actions';
+import { REQUEST_GEO_LOCATION, LOG_IN, LOG_OUT, ONLINE, OFFLINE } from './actions';
 
 const initialState = {
+  isLoading: true,
   isLoggedIn: false,
   isOnline: false,
   user: null,
@@ -10,6 +11,12 @@ const initialState = {
 
 function userReducer(state = initialState, action) {
   switch (action.type) {
+
+    case REQUEST_GEO_LOCATION:
+      return Object.assign({}, state, {
+        isLoading: true
+      })
+      break;
 
     case LOG_IN:
       return Object.assign({}, state, {
@@ -29,6 +36,7 @@ function userReducer(state = initialState, action) {
 
     case ONLINE:
       return Object.assign({}, state, {
+        isLoading: false,
         isOnline: true,
         userLocationPin: action.userLocationPin
       })
@@ -36,6 +44,7 @@ function userReducer(state = initialState, action) {
 
     case OFFLINE:
       return Object.assign({}, state, {
+        isLoading: false,
         isOnline: false,
         userLocationPin: null
       })

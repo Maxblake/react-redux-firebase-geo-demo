@@ -2,7 +2,6 @@ import React, { Component } from 'react';
 import LoginButton from './LoginButton';
 import LogoutButton from './LogoutButton';
 import {FirebaseAuth} from '../Repository/Firebase';
-import {UserStore} from '../Repository/Firebase';
 
 /**
  * If logged out:
@@ -18,16 +17,6 @@ class Login extends Component {
 
     this.handleLoginClick = this.handleLoginClick.bind(this);
     this.handleLogoutClick = this.handleLogoutClick.bind(this);
-
-    // setup handling of a successful login.
-    // TODO consider the effect of the UI here - a user has to wait for firebase
-    // to produce the redirect result before showing the user they have logged
-    // in.
-    FirebaseAuth().getRedirectResult()
-      .then(loginResult => this.handleLogin(loginResult))
-      .catch(error => {
-          console.error('Failed to find auth result: %s', error.message);
-      })
   }
 
   handleLoginClick() {
@@ -43,28 +32,6 @@ class Login extends Component {
   handleLogoutClick() {
     FirebaseAuth().signOut()
       .then(() => this.props.onLogout());
-  }
-
-  handleLogin(loginResult) {
-    if (loginResult.credential) {
-        // This gives you a Facebook Access Token. You can use it to access the Facebook API.
-        var token = loginResult.credential.accessToken;
-        console.log('Received Facebook access token %s', token);
-    }
-
-    // The signed-in user info.
-    var user = loginResult.user;
-    if (!user) {
-      console.log('Not logged in');
-      return;
-    }
-
-    console.log("*** Logged in as user: " + user.displayName + " ***");
-
-    UserStore.saveUser(user.uid, user.email, user.displayName, user.photoURL)
-      .then(user => {
-        this.props.onLogin(user);
-      });
   }
 
   render() {
