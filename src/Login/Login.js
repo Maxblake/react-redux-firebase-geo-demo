@@ -30,8 +30,7 @@ class Login extends Component {
   }
 
   handleLogoutClick() {
-    FirebaseAuth().signOut()
-      .then(() => this.props.onLogout());
+    this.props.onLogout();
   }
 
   render() {

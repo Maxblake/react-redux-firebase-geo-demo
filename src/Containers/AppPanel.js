@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import {initSocialLogin, login, logout, online, offline} from '../Redux/actions';
+import {initLogout, initOffline} from '../Redux/actions';
 import Login from '../Login/Login';
 import Location from '../Location/Location';
 import OnlineUsers from "../Users/OnlineUsers"
@@ -17,19 +17,11 @@ class AppPanel extends Component {
   }
 
   onLogout() {
-    LocationStore.removeLocation(this.props.user.id)
-      .then(() => {
-        this.props.dispatch(logout());
-      });
+    this.props.dispatch(initLogout(this.props.user.id));
   }
 
   offLine(userId) {
-    console.log('App state moving offline');
-
-    LocationStore.removeLocation(userId)
-      .then(() => {
-        this.props.dispatch(offline());
-      });
+    this.props.dispatch(initOffline(this.props.user.id));
   }
 
   render() {

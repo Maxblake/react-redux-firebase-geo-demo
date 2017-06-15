@@ -6,8 +6,13 @@ export const REQUEST_SOCIAL_USER = 'REQUEST_SOCIAL_USER';
 export const REQUEST_LOCATION = 'REQUEST_LOCATION';
 export const REQUEST_GEO_LOCATION = 'REQUEST_GEO_LOCATION';
 export const LOG_IN = 'LOG_IN';
+
+export const REQUEST_LOG_OUT = 'REQUEST_LOG_OUT';
 export const LOG_OUT = 'LOG_OUT';
+
 export const ONLINE = 'ONLINE';
+
+export const REQUEST_OFFLINE = 'REQUEST_OFFLINE';
 export const OFFLINE = 'OFFLINE';
 
 /**
@@ -16,6 +21,10 @@ export const OFFLINE = 'OFFLINE';
   checkForNewLogin  -> FB Login Found -> Save User -> login state
                     -> OR FB login not found -> Wait for Firebase Login -> login state
 
+*/
+
+/**
+  Commands: something we want to happen
 */
 
 export function requestSocialUser() {
@@ -36,6 +45,22 @@ export function requestGeoLocation() {
     type: REQUEST_GEO_LOCATION
   }
 };
+
+export function requestOffline() {
+  return {
+    type: REQUEST_OFFLINE
+  }
+};
+
+export function requestLogout() {
+  return {
+    type: REQUEST_LOG_OUT
+  }
+};
+
+/**
+  Events: something happened
+*/
 
 export function login(user) {
   return {
@@ -63,7 +88,10 @@ export function offline() {
   }
 };
 
-// thunk action creator
+/**
+  Action thunks: dispatch actions and do stuff
+*/
+
 // TODO handle error states
 export function initSocialLogin() {
   return (dispatch) => {
@@ -95,7 +123,7 @@ export function initSocialLogin() {
         console.log("*** Logged in as user: " + user.displayName + " ***");
 
         UserStore.saveUser(user.uid, user.email, user.displayName, user.photoURL)
-          .then(savedUser => dispatch(login(savedUser)));
+          .then(savedUser => dispatch(initLogin(savedUser)));
       })
       .catch(error => {
           console.error('Failed to find auth result: %s', error.message);
@@ -116,9 +144,7 @@ export function initFirebaseLogin() {
         };
 
         console.log("Already logged in as %s", userToAutoLogin.id);
-        dispatch(login(userToAutoLogin));
-        // TODO is this bad practice - two dispatch in a row?
-        dispatch(isOnline(userToAutoLogin.id));
+        dispatch(initLogin(userToAutoLogin));
       } else {
         // for now don't bother with a new action for "anonymous login"
         dispatch(logout());
@@ -127,8 +153,16 @@ export function initFirebaseLogin() {
   };
 }
 
+export function initLogin(user) {
+  return (dispatch) => {
+    dispatch(login(user));
+    // TODO is this bad practice - two dispatch in a row?
+    dispatch(initOnlineCheck(user.id));
+  };
+};
+
 // init APP state (isOnline) from the DB
-export function isOnline(userId) {
+export function initOnlineCheck(userId) {
   return (dispatch) => {
     dispatch(requestLocation(userId));
     LocationStore.getLocation(userId)
@@ -142,3 +176,47 @@ export function isOnline(userId) {
       });
   };
 }
+
+export function initMoveOnline(userId) {
+  return (dispatch) => {
+    dispatch(requestGeoLocation());
+    if (!navigator.geolocation) {
+      console.error('Geolocation is not supported by this browser');
+      return;
+    }
+
+    var that = this;
+    navigator.geolocation.getCurrentPosition((position) => {
+
+      var latitude = position.coords.latitude;
+      var longitude = position.coords.longitude;
+      console.log("User is located at lat: " + latitude + " lng: " + longitude);
+
+      LocationStore.saveLocation(userId, latitude, longitude)
+        .then(() => dispatch(online([latitude, longitude])));
+    });
+  };
+};
+
+export function initOffline(userId) {
+  return (dispatch) => {
+    dispatch(requestOffline(userId));
+    LocationStore.removeLocation(userId)
+      .then(() => {
+        dispatch(offline());
+      });
+  };
+};
+
+export function initLogout(userId) {
+  return (dispatch) => {
+    dispatch(requestLogout());
+    // first go offline
+    LocationStore.removeLocation(userId)
+      .then(() => {
+        // then actually logout
+        FirebaseAuth().signOut()
+          .then(() => dispatch(logout()));
+      });
+  };
+};
