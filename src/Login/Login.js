@@ -51,14 +51,6 @@ class Login extends Component {
       </div>
     )
   }
-
-  componentDidMount() {
-    console.log('Login component mounted');
-  }
-
-  componentWillUnmount() {
-    console.log('Login component will unmount');
-  }
 }
 
 export default Login;

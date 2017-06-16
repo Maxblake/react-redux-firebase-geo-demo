@@ -4,15 +4,12 @@ import {LocationStore} from '../Repository/Firebase';
 
 export const REQUEST_SOCIAL_USER = 'REQUEST_SOCIAL_USER';
 export const REQUEST_LOCATION = 'REQUEST_LOCATION';
-export const REQUEST_GEO_LOCATION = 'REQUEST_GEO_LOCATION';
+
+export const GEO_LOCATION = 'GEO_LOCATION';
 export const LOG_IN = 'LOG_IN';
-
-export const REQUEST_LOG_OUT = 'REQUEST_LOG_OUT';
+export const ANON_LOG_IN = 'ANON_LOG_IN';
 export const LOG_OUT = 'LOG_OUT';
-
 export const ONLINE = 'ONLINE';
-
-export const REQUEST_OFFLINE = 'REQUEST_OFFLINE';
 export const OFFLINE = 'OFFLINE';
 
 /**
@@ -40,24 +37,6 @@ export function requestLocation(userId) {
   }
 };
 
-export function requestGeoLocation() {
-  return {
-    type: REQUEST_GEO_LOCATION
-  }
-};
-
-export function requestOffline() {
-  return {
-    type: REQUEST_OFFLINE
-  }
-};
-
-export function requestLogout() {
-  return {
-    type: REQUEST_LOG_OUT
-  }
-};
-
 /**
   Events: something happened
 */
@@ -69,22 +48,10 @@ export function login(user) {
   }
 };
 
-export function logout() {
-  return {
-    type: LOG_OUT
-  }
-};
-
 export function online(userLocationPin) {
   return {
     type: ONLINE,
     userLocationPin: userLocationPin
-  }
-};
-
-export function offline() {
-  return {
-    type: OFFLINE
   }
 };
 
@@ -146,8 +113,10 @@ export function initFirebaseLogin() {
         console.log("Already logged in as %s", userToAutoLogin.id);
         dispatch(initLogin(userToAutoLogin));
       } else {
-        // for now don't bother with a new action for "anonymous login"
-        dispatch(logout());
+        dispatch({
+          type: ANON_LOG_IN,
+          user: user
+        });
       }
     });
   };
@@ -171,7 +140,9 @@ export function initOnlineCheck(userId) {
           console.log("User is already online at %s", userLocationPin);
           dispatch(online(userLocationPin));
         } else {
-          dispatch(offline());
+          dispatch({
+            type: OFFLINE
+          });
         }
       });
   };
@@ -179,44 +150,49 @@ export function initOnlineCheck(userId) {
 
 export function initMoveOnline(userId) {
   return (dispatch) => {
-    dispatch(requestGeoLocation());
-    if (!navigator.geolocation) {
-      console.error('Geolocation is not supported by this browser');
-      return;
-    }
+    dispatch({
+      type: ONLINE,
+      payload: new Promise((resolve, reject) => {
+        if (!navigator.geolocation) {
+          console.error('Geolocation is not supported by this browser');
+          reject();
+        }
 
-    var that = this;
-    navigator.geolocation.getCurrentPosition((position) => {
+        navigator.geolocation.getCurrentPosition((position) => {
+          var latitude = position.coords.latitude;
+          var longitude = position.coords.longitude;
+          console.log("User is located at lat: " + latitude + " lng: " + longitude);
 
-      var latitude = position.coords.latitude;
-      var longitude = position.coords.longitude;
-      console.log("User is located at lat: " + latitude + " lng: " + longitude);
-
-      LocationStore.saveLocation(userId, latitude, longitude)
-        .then(() => dispatch(online([latitude, longitude])));
+          LocationStore.saveLocation(userId, latitude, longitude)
+            .then(() => resolve([latitude, longitude]));
+        });
+      })
     });
   };
 };
 
 export function initOffline(userId) {
   return (dispatch) => {
-    dispatch(requestOffline(userId));
-    LocationStore.removeLocation(userId)
-      .then(() => {
-        dispatch(offline());
-      });
+    dispatch({
+      type: OFFLINE,
+      payload: LocationStore.removeLocation(userId)
+    });
   };
 };
 
 export function initLogout(userId) {
   return (dispatch) => {
-    dispatch(requestLogout());
-    // first go offline
-    LocationStore.removeLocation(userId)
-      .then(() => {
-        // then actually logout
-        FirebaseAuth().signOut()
-          .then(() => dispatch(logout()));
-      });
+    dispatch({
+      type: LOG_OUT,
+      payload: new Promise((resolve, reject) => {
+        // first go offline
+        LocationStore.removeLocation(userId)
+          .then(() => {
+            // then actually logout
+            FirebaseAuth().signOut()
+              .then(() => resolve());
+          });
+      })
+    });
   };
 };

@@ -1,5 +1,6 @@
 import { combineReducers } from 'redux';
-import { REQUEST_GEO_LOCATION, LOG_IN, LOG_OUT, ONLINE, OFFLINE } from './actions';
+import { PENDING, FULFILLED, REJECTED } from 'redux-promise-middleware'
+import { GEO_LOCATION, LOG_IN, ANON_LOG_IN, LOG_OUT, ONLINE, OFFLINE } from './actions';
 
 const initialState = {
   isLoading: true,
@@ -12,12 +13,6 @@ const initialState = {
 function userReducer(state = initialState, action) {
   switch (action.type) {
 
-    case REQUEST_GEO_LOCATION:
-      return Object.assign({}, state, {
-        isLoading: true
-      })
-      break;
-
     case LOG_IN:
       return Object.assign({}, state, {
         isLoggedIn: true,
@@ -25,12 +20,36 @@ function userReducer(state = initialState, action) {
       })
       break;
 
-    case LOG_OUT:
+    case ANON_LOG_IN:
+      return Object.assign({}, state, {
+        isLoading: false,
+        isLoggedIn: false,
+        isOnline: false,
+        user: null,
+        userLocationPin: null
+      })
+      break;
+
+    case LOG_OUT + '_' + FULFILLED:
       return Object.assign({}, state, {
         isLoggedIn: false,
         isOnline: false,
         user: null,
         userLocationPin: null
+      })
+      break;
+
+    case ONLINE + '_' + PENDING:
+      return Object.assign({}, state, {
+        isLoading: true
+      })
+      break;
+
+    case ONLINE + '_' + FULFILLED:
+      return Object.assign({}, state, {
+        isLoading: false,
+        isOnline: true,
+        userLocationPin: action.payload
       })
       break;
 
@@ -42,13 +61,21 @@ function userReducer(state = initialState, action) {
       })
       break;
 
-    case OFFLINE:
+    case OFFLINE + '_' + FULFILLED:
       return Object.assign({}, state, {
         isLoading: false,
         isOnline: false,
         userLocationPin: null
       })
       break;
+
+      case OFFLINE:
+        return Object.assign({}, state, {
+          isLoading: false,
+          isOnline: false,
+          userLocationPin: null
+        })
+        break;
 
     default:
       return state;
